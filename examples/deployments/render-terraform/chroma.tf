@@ -38,16 +38,13 @@ resource "render_service" "chroma" {
       value = var.chroma_data_volume_mount_path
     },
     ],
-    var.enable_auth ? [{
-      key   = "CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER"
-      value = "chromadb.auth.token.TokenConfigServerAuthCredentialsProvider"
-      },
+    var.enable_auth ? [
       {
-        key   = "CHROMA_SERVER_AUTH_CREDENTIALS"
+        key   = "CHROMA_SERVER_AUTHN_CREDENTIALS"
         value = "${local.token_auth_credentials.token}"
       },
       {
-        key   = "CHROMA_SERVER_AUTH_PROVIDER"
+        key   = "CHROMA_SERVER_AUTHN_PROVIDER"
         value = var.auth_type
     }] : []
   )
@@ -61,7 +58,7 @@ resource "render_service" "chroma" {
     env               = "image"
     plan              = var.render_plan
     region            = var.region
-    health_check_path = "/api/v1/heartbeat"
+    health_check_path = "/api/v2/heartbeat"
     disk = {
       name       = var.chroma_data_volume_device_name
       mount_path = var.chroma_data_volume_mount_path

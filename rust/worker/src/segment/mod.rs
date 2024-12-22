@@ -1,7 +1,12 @@
 pub(crate) mod config;
-mod distributed_hnsw_segment;
-mod segment_ingestor;
-mod segment_manager;
+pub mod test;
+pub(crate) mod utils;
 
-pub(crate) use segment_ingestor::*;
-pub(crate) use segment_manager::*;
+pub(crate) use types::*;
+
+// Required for benchmark
+pub mod distributed_hnsw_segment;
+pub mod metadata_segment;
+pub mod record_segment;
+pub mod spann_segment;
+pub mod types;

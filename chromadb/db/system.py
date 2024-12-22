@@ -1,8 +1,10 @@
 from abc import abstractmethod
 from typing import Optional, Sequence, Tuple
 from uuid import UUID
+from chromadb.api.configuration import CollectionConfigurationInternal
 from chromadb.types import (
     Collection,
+    CollectionAndSegments,
     Database,
     Tenant,
     Metadata,
@@ -43,6 +45,8 @@ class SysDB(Component):
         """Get a tenant by name. Raises an Error if the Tenant does not exist."""
         pass
 
+    # TODO: Investigate and remove this method, as segment creation is done as
+    # part of collection creation.
     @abstractmethod
     def create_segment(self, segment: Segment) -> None:
         """Create a new segment in the System database. Raises an Error if the ID
@@ -50,28 +54,26 @@ class SysDB(Component):
         pass
 
     @abstractmethod
-    def delete_segment(self, id: UUID) -> None:
-        """Create a new segment in the System database."""
+    def delete_segment(self, collection: UUID, id: UUID) -> None:
+        """Delete a segment from the System database."""
         pass
 
     @abstractmethod
     def get_segments(
         self,
+        collection: UUID,
         id: Optional[UUID] = None,
         type: Optional[str] = None,
         scope: Optional[SegmentScope] = None,
-        topic: Optional[str] = None,
-        collection: Optional[UUID] = None,
     ) -> Sequence[Segment]:
-        """Find segments by id, type, scope, topic or collection."""
+        """Find segments by id, type, scope or collection."""
         pass
 
     @abstractmethod
     def update_segment(
         self,
+        collection: UUID,
         id: UUID,
-        topic: OptionalArgument[Optional[str]] = Unspecified(),
-        collection: OptionalArgument[Optional[UUID]] = Unspecified(),
         metadata: OptionalArgument[Optional[UpdateMetadata]] = Unspecified(),
     ) -> None:
         """Update a segment. Unspecified fields will be left unchanged. For the
@@ -84,17 +86,19 @@ class SysDB(Component):
         self,
         id: UUID,
         name: str,
+        configuration: CollectionConfigurationInternal,
+        segments: Sequence[Segment],
         metadata: Optional[Metadata] = None,
         dimension: Optional[int] = None,
         get_or_create: bool = False,
         tenant: str = DEFAULT_TENANT,
         database: str = DEFAULT_DATABASE,
     ) -> Tuple[Collection, bool]:
-        """Create a new collection any associated resources
-        (Such as the necessary topics) in the SysDB. If get_or_create is True, the
-        collectionwill be created if one with the same name does not exist.
+        """Create a new collection and associated resources
+        in the SysDB. If get_or_create is True, the
+        collection will be created if one with the same name does not exist.
         The metadata will be updated using the same protocol as update_collection. If get_or_create
-        is False and the collection already exists, a error will be raised.
+        is False and the collection already exists, an error will be raised.
 
         Returns a tuple of the created collection and a boolean indicating whether the
         collection was created or not.
@@ -103,9 +107,12 @@ class SysDB(Component):
 
     @abstractmethod
     def delete_collection(
-        self, id: UUID, tenant: str = DEFAULT_TENANT, database: str = DEFAULT_DATABASE
+        self,
+        id: UUID,
+        tenant: str = DEFAULT_TENANT,
+        database: str = DEFAULT_DATABASE,
     ) -> None:
-        """Delete a collection, topic, all associated segments and any associate resources
+        """Delete a collection, all associated segments and any associate resources (log stream)
         from the SysDB and the system at large."""
         pass
 
@@ -113,21 +120,29 @@ class SysDB(Component):
     def get_collections(
         self,
         id: Optional[UUID] = None,
-        topic: Optional[str] = None,
         name: Optional[str] = None,
         tenant: str = DEFAULT_TENANT,
         database: str = DEFAULT_DATABASE,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Sequence[Collection]:
-        """Find collections by id, topic or name. If name is provided, tenant and database must also be provided."""
+        """Find collections by id or name. If name is provided, tenant and database must also be provided."""
+        pass
+
+    @abstractmethod
+    def get_collection_with_segments(
+        self,
+        collection_id: UUID
+    ) -> CollectionAndSegments:
+        """Get a consistent snapshot of a collection by id. This will return a collection with segment
+        information that matches the collection version and log position. 
+        """
         pass
 
     @abstractmethod
     def update_collection(
         self,
         id: UUID,
-        topic: OptionalArgument[str] = Unspecified(),
         name: OptionalArgument[str] = Unspecified(),
         dimension: OptionalArgument[Optional[int]] = Unspecified(),
         metadata: OptionalArgument[Optional[UpdateMetadata]] = Unspecified(),
